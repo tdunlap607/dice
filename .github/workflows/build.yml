@@ -38,8 +38,38 @@ jobs:
       - name: Build
         run: make build
 
+      - name: Start DiceDB server
+        run: |
+          ./dicedb --engine ironhawk --log-level debug --enable-wal > dicedb.log 2>&1 &
+          echo $! > dicedb.pid
+          # Wait for server to be ready
+          for i in {1..30}; do
+            if nc -z localhost 7379; then
+              echo "DiceDB server is ready"
+              break
+            fi
+            echo "Waiting for DiceDB server... ($i/30)"
+            sleep 1
+          done
+
       - name: Run tests
         run: make test
+
+      - name: Stop DiceDB server
+        if: always()
+        run: |
+          if [ -f dicedb.pid ]; then
+            kill $(cat dicedb.pid) || true
+            rm dicedb.pid
+          fi
+
+      - name: Upload DiceDB logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dicedb-logs
+          path: dicedb.log
+          retention-days: 7
 
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
