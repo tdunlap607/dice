@@ -49,7 +49,7 @@ jobs:
           echo "Waiting for DiceDB server to be ready..."
           for i in {1..60}; do
             echo "Attempting to connect to DiceDB (attempt $i)..."
-            OUTPUT=$(printf "SET k1 v1\nGET k1\n" | dicedb-cli --host localhost --port 7379 2>&1)
+            OUTPUT=$(printf "SET k1 v1\nGET k1\n" | dicedb-cli --host localhost --port 7379 2>&1 || true)
             echo "dicedb-cli output: $OUTPUT"
             if echo "$OUTPUT" | grep -q "v1"; then
               echo "DiceDB server is ready and responding to commands"
