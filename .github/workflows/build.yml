@@ -38,19 +38,22 @@ jobs:
       - name: Build
         run: make build
 
+      - name: Install DiceDB CLI
+        run: curl -sL https://raw.githubusercontent.com/dicedb/dicedb-cli/refs/heads/master/install.sh | sudo sh
+
       - name: Start DiceDB server
         run: |
           ./dicedb --engine ironhawk --log-level debug --enable-wal > dicedb.log 2>&1 &
           echo $! > dicedb.pid
-          # Wait for server to be ready by checking if it responds to PING
+          # Wait for server to be ready
           echo "Waiting for DiceDB server to be ready..."
           for i in {1..60}; do
-            if nc -z localhost 7379 2>/dev/null; then
-              # Port is open, now check if server responds to PING command
-              if echo -e '*1\r\n$4\r\nPING\r\n' | nc -w 1 localhost 7379 | grep -q "PONG"; then
-                echo "DiceDB server is ready and responding to commands"
-                break
-              fi
+            if dicedb-cli --host localhost --port 7379 2>/dev/null <<EOF | grep -q "v1"; then
+              SET k1 v1
+              GET k1
+              EOF
+              echo "DiceDB server is ready and responding to commands"
+              break
             fi
             if [ $i -eq 60 ]; then
               echo "Server failed to start properly. Logs:"
